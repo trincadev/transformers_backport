@@ -27,13 +27,14 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
-from ...tokenization_utils import PreTrainedTokenizer
-from ...utils import (
+from ....tokenization_utils import PreTrainedTokenizer
+from ....utils import (
     cached_file,
     is_sacremoses_available,
     is_torch_available,
     logging,
     requires_backends,
+    strtobool,
     torch_only_method,
 )
 
@@ -154,7 +155,7 @@ class TransfoXLTokenizer(PreTrainedTokenizer):
             token instead.
         eos_token (`str`, *optional*, defaults to `"<eos>"`):
             The end of sequence token.
-        additional_special_tokens (`List[str]`, *optional*, defaults to `["<formula>"]`):
+        additional_special_tokens (`List[str]`, *optional*, defaults to `['<formula>']`):
             A list of additional special tokens (for the HuggingFace functionality).
         language (`str`, *optional*, defaults to `"en"`):
             The language of this tokenizer (used for mose preprocessing).
@@ -181,6 +182,77 @@ class TransfoXLTokenizer(PreTrainedTokenizer):
         language="en",
         **kwargs,
     ):
+        logger.error(
+            "`TransfoXL` was deprecated due to security issues linked to `pickle.load` in `TransfoXLTokenizer`. "
+            "See more details on this model's documentation page: "
+            "`https://github.com/huggingface/transformers/blob/main/docs/source/en/model_doc/transfo-xl.md`."
+        )
+
+        requires_backends(self, "sacremoses")
+        if special is None:
+            special = []
+        self.counter = Counter()
+        self.special = special
+        self.min_freq = min_freq
+        self.max_size = max_size
+        self.lower_case = lower_case
+        self.delimiter = delimiter
+        self.vocab_file = vocab_file
+        self.punctuation_symbols = '!"#$%&()*+,-./\\:;<=>?@[\\]^_`{|}~'
+        self.punction_without_space_before_pattern = re.compile(rf"[^\s][{self.punctuation_symbols}]")
+        self.punctuation_with_space_around_pattern = self._compile_space_around_punctuation_pattern()
+        self.language = language
+        self.moses_punct_normalizer = sm.MosesPunctNormalizer(language)
+        self.moses_tokenizer = sm.MosesTokenizer(language)
+        self.moses_detokenizer = sm.MosesDetokenizer(language)
+        self.idx2sym = []
+        self.sym2idx = OrderedDict()
+        # This try... catch... is not beautiful but honestly this tokenizer was not made to be used
+        # in a library like ours, at all.
+        try:
+            vocab_dict = None
+            if pretrained_vocab_file is not None:
+                # Priority on pickle files (support PyTorch and TF)
+                if not strtobool(os.environ.get("TRUST_REMOTE_CODE", "False")):
+                    raise ValueError(
+                        "This part uses `pickle.load` which is insecure and will execute arbitrary code that is "
+                        "potentially malicious. It's recommended to never unpickle data that could have come from an "
+                        "untrusted source, or that could have been tampered with. If you already verified the pickle "
+                        "data and decided to use it, you can set the environment variable "
+                        "`TRUST_REMOTE_CODE` to `True` to allow it."
+                    )
+                with open(pretrained_vocab_file, "rb") as f:
+                    vocab_dict = pickle.load(f)
+
+                # Loading a torch-saved transfo-xl vocab dict with pickle results in an integer
+                # Entering this if statement means that we tried to load a torch-saved file with pickle, and we failed.
+                # We therefore load it with torch, if it's available.
+                if isinstance(vocab_dict, int):
+                    if not is_torch_available():
+                        raise ImportError(
+                            "Not trying to load dict with PyTorch as you need to install pytorch to load "
+                            "from a PyTorch pretrained vocabulary, "
+                            "or activate it with environment variables USE_TORCH=1 and USE_TF=0."
+                        )
+                    vocab_dict = torch.load(pretrained_vocab_file)
+
+            if vocab_dict is not None:
+                for key, value in vocab_dict.items():
+                    if key not in self.__dict__ or key in ["sym2idx", "idx2sym"]:
+                        self.__dict__[key] = value
+            elif vocab_file is not None:
+                self.build_vocab()
+
+        except Exception as e:
+            raise ValueError(
+                f"Unable to parse file {pretrained_vocab_file}. Unknown format. "
+                "If you tried to load a model saved through TransfoXLTokenizerFast, "
+                "please note they are not compatible."
+            ) from e
+
+        if vocab_file is not None:
+            self.build_vocab()
+
         super().__init__(
             special=special,
             min_freq=min_freq,
@@ -196,65 +268,11 @@ class TransfoXLTokenizer(PreTrainedTokenizer):
             language=language,
             **kwargs,
         )
-        requires_backends(self, "sacremoses")
 
+        # these are not required to initialize the parent class as only used when tokenizing.
         if never_split is None:
             never_split = self.all_special_tokens
-        if special is None:
-            special = []
-        self.counter = Counter()
-        self.special = special
-        self.min_freq = min_freq
-        self.max_size = max_size
-        self.lower_case = lower_case
-        self.delimiter = delimiter
-        self.vocab_file = vocab_file
         self.never_split = never_split
-        self.punctuation_symbols = '!"#$%&()*+,-./\\:;<=>?@[\\]^_`{|}~'
-        self.punction_without_space_before_pattern = re.compile(rf"[^\s][{self.punctuation_symbols}]")
-        self.punctuation_with_space_around_pattern = self._compile_space_around_punctuation_pattern()
-        self.language = language
-        self.moses_punct_normalizer = sm.MosesPunctNormalizer(language)
-        self.moses_tokenizer = sm.MosesTokenizer(language)
-        self.moses_detokenizer = sm.MosesDetokenizer(language)
-
-        # This try... catch... is not beautiful but honestly this tokenizer was not made to be used
-        # in a library like ours, at all.
-        try:
-            vocab_dict = None
-            if pretrained_vocab_file is not None:
-                # Priority on pickle files (support PyTorch and TF)
-                with open(pretrained_vocab_file, "rb") as f:
-                    vocab_dict = pickle.load(f)
-
-                # Loading a torch-saved transfo-xl vocab dict with pickle results in an integer
-                # Entering this if statement means that we tried to load a torch-saved file with pickle, and we failed.
-                # We therefore load it with torch, if it's available.
-                if type(vocab_dict) == int:
-                    if not is_torch_available():
-                        raise ImportError(
-                            "Not trying to load dict with PyTorch as you need to install pytorch to load "
-                            "from a PyTorch pretrained vocabulary, "
-                            "or activate it with environment variables USE_TORCH=1 and USE_TF=0."
-                        )
-                    vocab_dict = torch.load(pretrained_vocab_file)
-
-            if vocab_dict is not None:
-                for key, value in vocab_dict.items():
-                    if key not in self.__dict__:
-                        self.__dict__[key] = value
-            elif vocab_file is not None:
-                self.build_vocab()
-
-        except Exception as e:
-            raise ValueError(
-                f"Unable to parse file {pretrained_vocab_file}. Unknown format. "
-                "If you tried to load a model saved through TransfoXLTokenizerFast, "
-                "please note they are not compatible."
-            ) from e
-
-        if vocab_file is not None:
-            self.build_vocab()
 
     @property
     def do_lower_case(self):
@@ -305,7 +323,7 @@ class TransfoXLTokenizer(PreTrainedTokenizer):
         elif "<unk>" in self.sym2idx:
             self.unk_idx = self.sym2idx["<unk>"]
         else:
-            raise ValueError("No <unknown> token in vocabulary")
+            raise ValueError("Token not in vocabulary and no <unk> token in vocabulary for replacement.")
 
     def save_vocabulary(self, save_directory: str, filename_prefix: Optional[str] = None) -> Tuple[str]:
         if os.path.isdir(save_directory):
@@ -323,7 +341,7 @@ class TransfoXLTokenizer(PreTrainedTokenizer):
         if self.vocab_file:
             logger.info(f"building vocab from {self.vocab_file}")
             self._build_from_file(self.vocab_file)
-            logger.info(f"final vocab size {len(self)}")
+            logger.info(f"Final vocab size {len(self.sym2idx)}")
         else:
             logger.info(f"building vocab with min_freq={self.min_freq}, max_size={self.max_size}")
             self.idx2sym = []
@@ -337,7 +355,7 @@ class TransfoXLTokenizer(PreTrainedTokenizer):
                     break
                 self.add_symbol(sym)
 
-            logger.info(f"final vocab size {len(self)} from {len(self.counter)} unique tokens")
+            logger.info(f"Final vocab size {len(self.sym2idx)} from {len(self.counter)} unique tokens")
 
     @torch_only_method
     def encode_file(self, path, ordered=False, verbose=False, add_eos=True, add_double_eos=False):
@@ -406,9 +424,8 @@ class TransfoXLTokenizer(PreTrainedTokenizer):
             self.sym2idx[current_sym] = idx
 
         # Delete token from added_tokens
-        old_index = self.added_tokens_encoder[token]
-        del self.added_tokens_decoder[old_index]
-        del self.added_tokens_encoder[token]
+        old_index = self._added_tokens_encoder.pop(token)
+        self._added_tokens_decoder.pop(old_index)
 
     def moses_punct_norm(self, text):
         return self.moses_punct_normalizer.normalize(text)
@@ -463,7 +480,7 @@ class TransfoXLTokenizer(PreTrainedTokenizer):
             elif "<UNK>" in self.sym2idx:
                 return self.sym2idx["<UNK>"]
             else:
-                raise ValueError("Token not in vocabulary and no <unk> token in vocabulary for replacement")
+                raise ValueError("Token not in vocabulary and no <unk> token in vocabulary for replacement.")
 
     def convert_tokens_to_string(self, tokens):
         """
@@ -482,7 +499,9 @@ class TransfoXLTokenizer(PreTrainedTokenizer):
         return len(self.idx2sym)
 
     def get_vocab(self):
-        return dict(self.sym2idx, **self.added_tokens_encoder)
+        vocab = self.sym2idx.copy()
+        vocab.update(self.added_tokens_encoder)
+        return vocab
 
     def _tokenize(self, line, add_eos=False, add_double_eos=False):
         line = line.strip()
@@ -780,6 +799,13 @@ def get_lm_corpus(datadir, dataset):
         corpus = torch.load(fn_pickle)
     elif os.path.exists(fn):
         logger.info("Loading cached dataset from pickle...")
+        if not strtobool(os.environ.get("TRUST_REMOTE_CODE", "False")):
+            raise ValueError(
+                "This part uses `pickle.load` which is insecure and will execute arbitrary code that is potentially "
+                "malicious. It's recommended to never unpickle data that could have come from an untrusted source, or "
+                "that could have been tampered with. If you already verified the pickle data and decided to use it, "
+                "you can set the environment variable `TRUST_REMOTE_CODE` to `True` to allow it."
+            )
         with open(fn, "rb") as fp:
             corpus = pickle.load(fp)
     else:

@@ -132,7 +132,7 @@ _deps = [
     "librosa",
     "nltk",
     "natten>=0.14.6",
-    "numpy>=1.17",
+    "numpy>=1.17,<2.0.0",
     "onnxconverter-common",
     "onnxruntime-tools>=1.4.2",
     "onnxruntime>=1.4.0",
@@ -427,15 +427,15 @@ install_requires = [
 
 setup(
     name="transformers",
-    version="4.31.0",  # expected format is one of x.y.z.dev0, or x.y.z.rc1 or x.y.z (no to dashes, yes to dots)
+    version="4.31.0.fix",  # expected format is one of x.y.z.dev0, or x.y.z.rc1 or x.y.z (no to dashes, yes to dots)
     author="The Hugging Face team (past and future) with the help of all our contributors (https://github.com/huggingface/transformers/graphs/contributors)",
-    author_email="transformers@huggingface.co",
-    description="State-of-the-art Machine Learning for JAX, PyTorch and TensorFlow",
+    author_email="alessandro@trinca.tornidor.com",
+    description="State-of-the-art Machine Learning for JAX, PyTorch and TensorFlow - version 4.31.0.fix",
     long_description=open("README.md", "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     keywords="NLP vision speech deep learning transformer pytorch tensorflow jax BERT GPT-2 Wav2Vec2 ViT",
     license="Apache 2.0 License",
-    url="https://github.com/huggingface/transformers",
+    url="https://github.com/trincadev/transformers",
     package_dir={"": "src"},
     packages=find_packages("src"),
     include_package_data=True,
