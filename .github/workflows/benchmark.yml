@@ -15,12 +15,17 @@ jobs:
     name: Benchmark
     runs-on: ubuntu-22.04
     steps:
+      - name: Benchmark
+        run: |
+          echo ${{ github.event_name }}
+          echo ${{ github.ref_name }}
+
       - name: Benchmark (daily)
         if: github.event_name == 'schedule'
         run: |
           echo Hello
 
       - name: Benchmark (merged to main event)
-        if: github.event_name == 'workflow_run'
+        if: github.event_name == 'push'
         run: |
           echo Hello2
