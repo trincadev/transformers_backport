@@ -4,6 +4,7 @@ on:
   push:
     branches: [ run_benchmark_on_github ]
 
+jobs:
   benchmark:
     name: Benchmark workflow
     uses: ./.github/workflows/benchmark.yml
