@@ -13,28 +13,14 @@ env:
 jobs:
   benchmark:
     name: Benchmark
-    runs-on: [single-gpu, nvidia-gpu, a10, ci]
-    container:
-      image: huggingface/transformers-all-latest-gpu
-      options: --gpus all --privileged --ipc host -v /mnt/cache/.cache/huggingface:/mnt/cache/
+    runs-on: ubuntu-22.04
     steps:
-      - name: Update clone
-        working-directory: /transformers
-        run: |
-          git fetch && git checkout ${{ github.sha }}
-
-      - name: Reinstall transformers in edit mode (remove the one installed during docker image build)
-        working-directory: /transformers
-        run: python3 -m pip uninstall -y transformers && python3 -m pip install -e .
-
       - name: Benchmark (daily)
         if: github.event_name == 'schedule'
-        working-directory: /transformers
         run: |
-          python3 -m pip install optimum-benchmark>=0.2.0
+          echo Hello
 
       - name: Benchmark (merged to main event)
         if: github.event_name == 'workflow_run'
-        working-directory: /transformers
         run: |
-          python3 -m pip install optimum-benchmark>=0.2.0
+          echo Hello2
