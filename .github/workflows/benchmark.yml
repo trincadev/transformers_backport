@@ -26,6 +26,6 @@ jobs:
           echo Hello
 
       - name: Benchmark (merged to main event)
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref_name == 'run_benchmark_on_github'
         run: |
           echo Hello2
