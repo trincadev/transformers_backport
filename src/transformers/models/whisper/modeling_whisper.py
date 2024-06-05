@@ -293,6 +293,7 @@ class WhisperAttention(nn.Module):
         layer_head_mask: Optional[torch.Tensor] = None,
         output_attentions: bool = False,
         cache_position: Optional[torch.LongTensor] = None,
+        _length: int = 0,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         """Input shape: Batch x Time x Channel"""
 
@@ -338,6 +339,11 @@ class WhisperAttention(nn.Module):
                 key_states, value_states = past_key_value.update(
                     key_states, value_states, self.layer_idx, {"cache_position": cache_position}
                 )
+
+        if _length > 0:
+            key_states = key_states[:, :, :_length, :]
+            value_states = value_states[:, :, :_length, :]
+            attention_mask = attention_mask[:, :, :, :_length] if attention_mask is not None else attention_mask
 
         attn_weights = torch.matmul(query_states, key_states.transpose(2, 3))
 
@@ -399,6 +405,7 @@ class WhisperFlashAttention2(WhisperAttention):
         layer_head_mask: Optional[torch.Tensor] = None,
         output_attentions: bool = False,
         cache_position: Optional[torch.LongTensor] = None,
+        _length: int = 0,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         if isinstance(past_key_value, StaticCache):
             raise ValueError(
@@ -487,6 +494,11 @@ class WhisperFlashAttention2(WhisperAttention):
             query_states = query_states.to(target_dtype)
             key_states = key_states.to(target_dtype)
             value_states = value_states.to(target_dtype)
+
+        if _length > 0:
+            key_states = key_states[:, :, :_length, :]
+            value_states = value_states[:, :, :_length, :]
+            causal_mask = causal_mask[:, :, :, :_length] if causal_mask is not None else causal_mask
 
         attn_output = self._flash_attention_forward(
             query_states, key_states, value_states, causal_mask, tgt_len, dropout=self.dropout
@@ -610,6 +622,7 @@ class WhisperSdpaAttention(WhisperAttention):
         layer_head_mask: Optional[torch.Tensor] = None,
         output_attentions: bool = False,
         cache_position: Optional[torch.LongTensor] = None,
+        _length: int = 0,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         """Input shape: Batch x Time x Channel"""
         if output_attentions or layer_head_mask is not None:
@@ -679,6 +692,11 @@ class WhisperSdpaAttention(WhisperAttention):
         # in SDPA to support both torch.compile's dynamic shapes and full graph options. An inline conditional prevents dynamic shapes from compiling.
         # The tgt_len > 1 is necessary to match with AttentionMaskConverter.to_causal_4d that does not create a causal mask in case tgt_len == 1.
         is_causal = True if self.is_causal and causal_mask is None and tgt_len > 1 else False
+
+        if _length > 0:
+            key_states = key_states[:, :, :_length, :]
+            value_states = value_states[:, :, :_length, :]
+            causal_mask = causal_mask[:, :, :, :_length] if causal_mask is not None else causal_mask
 
         # NOTE: SDPA with memory-efficient backend is currently (torch==2.1.2) bugged when using non-contiguous inputs and a custom attn_mask,
         # but we are fine here as `_shape` do call `.contiguous()`. Reference: https://github.com/pytorch/pytorch/issues/112577
@@ -830,6 +848,7 @@ class WhisperDecoderLayer(nn.Module):
         output_attentions: Optional[bool] = False,
         use_cache: Optional[bool] = True,
         cache_position: Optional[torch.LongTensor] = None,
+        _length: int = 0,
     ) -> torch.Tensor:
         """
         Args:
@@ -863,6 +882,7 @@ class WhisperDecoderLayer(nn.Module):
             layer_head_mask=layer_head_mask,
             output_attentions=output_attentions,
             cache_position=cache_position,
+            _length=_length,
         )
         hidden_states = nn.functional.dropout(hidden_states, p=self.dropout, training=self.training)
         hidden_states = residual + hidden_states
@@ -1282,6 +1302,7 @@ class WhisperDecoder(WhisperPreTrainedModel):
         output_hidden_states=None,
         return_dict=None,
         cache_position=None,
+        _length: int = 0,
     ):
         r"""
         Args:
@@ -1439,6 +1460,7 @@ class WhisperDecoder(WhisperPreTrainedModel):
                     output_attentions,
                     use_cache,
                     cache_position,
+                    _length=_length,
                 )
             else:
                 layer_outputs = decoder_layer(
@@ -1453,6 +1475,7 @@ class WhisperDecoder(WhisperPreTrainedModel):
                     output_attentions=output_attentions,
                     use_cache=use_cache,
                     cache_position=cache_position,
+                    _length=_length,
                 )
             hidden_states = layer_outputs[0]
 
@@ -1668,6 +1691,7 @@ class WhisperModel(WhisperPreTrainedModel):
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
+        _length: int = 0,
     ) -> Union[Tuple[torch.Tensor], Seq2SeqModelOutput]:
         r"""
         Returns:
@@ -1728,6 +1752,7 @@ class WhisperModel(WhisperPreTrainedModel):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
             cache_position=cache_position,
+            _length=_length,
         )
 
         if not return_dict:
@@ -1804,6 +1829,7 @@ class WhisperForConditionalGeneration(WhisperGenerationMixin, WhisperPreTrainedM
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
+        _length: int = 0,
     ) -> Union[Tuple[torch.Tensor], Seq2SeqLMOutput]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
@@ -1859,6 +1885,7 @@ class WhisperForConditionalGeneration(WhisperGenerationMixin, WhisperPreTrainedM
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
             cache_position=cache_position,
+            _length=_length,
         )
         lm_logits = self.proj_out(outputs[0])
 
@@ -1894,6 +1921,7 @@ class WhisperForConditionalGeneration(WhisperGenerationMixin, WhisperPreTrainedM
         attention_mask=None,
         decoder_attention_mask=None,
         cache_position=None,
+        _length=None,
         **kwargs,
     ):
         decoder_position_ids = None
@@ -1933,6 +1961,7 @@ class WhisperForConditionalGeneration(WhisperGenerationMixin, WhisperPreTrainedM
             "decoder_attention_mask": decoder_attention_mask,
             "decoder_position_ids": decoder_position_ids,
             "cache_position": cache_position,
+            "_length": int(cache_position[-1]) + 1,
         }
 
     @staticmethod
