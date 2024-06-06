@@ -38,7 +38,7 @@ def get_last_daily_ci_runs(token):
             workflow_run_id = workflow_run["id"]
             break
 
-    return workflow_run_id
+    return "9377230931"
 
 
 def get_last_daily_ci_artifacts(artifact_names, output_dir, token):

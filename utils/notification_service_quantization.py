@@ -256,7 +256,7 @@ if __name__ == "__main__":
     is_scheduled_ci_run = os.environ.get("CI_WORKFLOW_REF") == target_workflow
 
     # upload results to Hub dataset (only for the scheduled daily CI run on `main`)
-    if is_scheduled_ci_run:
+    if True:
         api.upload_file(
             path_or_fileobj=f"ci_results_{job_name}/quantization_results.json",
             path_in_repo=f"{datetime.datetime.today().strftime('%Y-%m-%d')}/ci_results_{job_name}/quantization_results.json",
