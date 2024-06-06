@@ -192,9 +192,6 @@ class LevitModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase):
         self.model_tester = LevitModelTester(self)
         self.config_tester = ConfigTester(self, config_class=LevitConfig, has_text_modality=False, hidden_size=37)
 
-    def test_foo(self):
-        assert 1 == 2
-
     def test_config(self):
         self.create_and_test_config_common_properties()
         self.config_tester.create_and_test_config_to_json_string()
