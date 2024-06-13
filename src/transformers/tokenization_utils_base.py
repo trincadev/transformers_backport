@@ -848,6 +848,8 @@ class SpecialTokensMixin:
     def __init__(self, verbose=False, **kwargs):
         self._bos_token = None
         self._eos_token = None
+        self._add_bos_token = None
+        self._add_eos_token = None
         self._unk_token = None
         self._sep_token = None
         self._pad_token = None
@@ -984,6 +986,7 @@ class SpecialTokensMixin:
 
         # if we are adding tokens that were not part of the vocab, we ought to add them
         added_tokens = self.add_tokens(added_tokens, special_tokens=True)
+        self._update_post_processor()
         return added_tokens
 
     def add_tokens(
