@@ -238,7 +238,7 @@ torch_and_flax_job = CircleCIJob(
     "torch_and_flax",
     additional_env={"RUN_PT_FLAX_CROSS_TESTS": True},
     docker_image=[{"image":"huggingface/transformers-torch-jax-light"}],
-    install_steps=["uv venv && uv pip install ."],
+    install_steps=["uv venv && uv pip install . && uv pip install jax==0.4.29 jaxlib==0.4.29 flax==0.8.4"],
     marker="is_pt_flax_cross_test",
     pytest_options={"rA": None, "durations": 0},
 )
@@ -272,7 +272,7 @@ tf_job = CircleCIJob(
 flax_job = CircleCIJob(
     "flax",
     docker_image=[{"image":"huggingface/transformers-jax-light"}],
-    install_steps=["uv venv && uv pip install ."],
+    install_steps=["uv venv && uv pip install . && uv pip install jax==0.4.29 jaxlib==0.4.29 flax==0.8.4"],
     parallelism=6,
     pytest_num_workers=16
 )
