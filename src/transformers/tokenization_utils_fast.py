@@ -173,7 +173,7 @@ class PreTrainedTokenizerFast(PreTrainedTokenizerBase):
         super().__init__(**kwargs)
 
         if "add_bos_token" in kwargs or "add_eos_token" in kwargs:
-            self._update_bos_eos_tokens()
+            self.update_post_processor()
 
         # Set the splitting mode for special tokens for the tokenizer to be used throughout the class.
         self._tokenizer.encode_special_tokens = self.split_special_tokens
@@ -878,7 +878,7 @@ class PreTrainedTokenizerFast(PreTrainedTokenizerBase):
         return self.__class__(tokenizer_object=tokenizer, **kwargs)
 
     # Copied from LlamaTokenizerFast (update_post_processor, add_bos_token, add_eos_token
-    def _update_bos_eos_tokens(self):
+    def update_post_processor(self):
         """
         Updates the underlying post processor with the current `bos_token` and `eos_token`.
         """
@@ -918,9 +918,9 @@ class PreTrainedTokenizerFast(PreTrainedTokenizerBase):
     @add_eos_token.setter
     def add_eos_token(self, value):
         self._add_eos_token = value
-        self._update_bos_eos_tokens()
+        self.update_post_processor()
 
     @add_bos_token.setter
     def add_bos_token(self, value):
         self._add_bos_token = value
-        self._update_bos_eos_tokens()
+        self.update_post_processor()
