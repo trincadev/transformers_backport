@@ -584,10 +584,6 @@ class PreTrainedTokenizer(PreTrainedTokenizerBase):
             if token not in self.tokens_trie._tokens:
                 self.tokens_trie.add(token)
 
-    def _update_bos_eos_tokens(self):
-        # TODO: Add support for Template Processor
-        return
-
     def num_special_tokens_to_add(self, pair: bool = False) -> int:
         """
         Returns the number of added tokens when encoding a sequence with special tokens.
