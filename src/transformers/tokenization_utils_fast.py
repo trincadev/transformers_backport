@@ -882,6 +882,7 @@ class PreTrainedTokenizerFast(PreTrainedTokenizerBase):
         """
         Updates the underlying post processor with the current `bos_token` and `eos_token`.
         """
+        # TODO: Add support for Template Processor
         if not isinstance(self._tokenizer.post_processor, processors.Sequence):
             return
 

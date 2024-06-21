@@ -585,7 +585,7 @@ class PreTrainedTokenizer(PreTrainedTokenizerBase):
                 self.tokens_trie.add(token)
 
     def _update_bos_eos_tokens(self):
-        # TODO:ita for slow
+        # TODO: Add support for Template Processor
         return
 
     def num_special_tokens_to_add(self, pair: bool = False) -> int:
@@ -1026,10 +1026,12 @@ class PreTrainedTokenizer(PreTrainedTokenizerBase):
         return [0] * ((len(token_ids_1) if token_ids_1 else 0) + len(token_ids_0))
 
     @overload
-    def convert_ids_to_tokens(self, ids: int, skip_special_tokens: bool = False) -> str: ...
+    def convert_ids_to_tokens(self, ids: int, skip_special_tokens: bool = False) -> str:
+        ...
 
     @overload
-    def convert_ids_to_tokens(self, ids: List[int], skip_special_tokens: bool = False) -> List[str]: ...
+    def convert_ids_to_tokens(self, ids: List[int], skip_special_tokens: bool = False) -> List[str]:
+        ...
 
     def convert_ids_to_tokens(
         self, ids: Union[int, List[int]], skip_special_tokens: bool = False
