@@ -69,7 +69,7 @@ jobs:
       runs-on: ['${{ matrix.machine_type }}', nvidia-gpu, t4, ci]
       container:
         image: huggingface/transformers-all-latest-gpu
-        options: --gpus all --ipc host -v /mnt/cache/.cache/huggingface:/mnt/cache/
+        options: --gpus all --privileged --ipc host -v /mnt/cache/.cache/huggingface:/mnt/cache/
       steps:
       - name: Echo input and matrix info
         shell: bash
