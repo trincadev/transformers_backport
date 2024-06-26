@@ -34,7 +34,7 @@ jobs:
           id: models_to_run
           run: |
             echo "llava_next_video"
-            echo "models=llava_next_video" >> $GITHUB_OUTPUT
+            echo "models=['llava_next_video']" >> $GITHUB_OUTPUT
 
   run_models_gpu:
       name: Run all tests for the model
