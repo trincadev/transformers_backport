@@ -1,10 +1,9 @@
 name: PR slow CI
 
 on:
-  pull_request:
-    paths:
-      - "src/transformers/models/*/modeling_*.py"
-      - "tests/models/*/test_*.py"
+  push:
+    branches:
+      - llava_next_video_debug_ci
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -28,32 +27,14 @@ jobs:
   find_models_to_run:
       runs-on: ubuntu-22.04
       name: Find models to run slow tests
-      # Triggered only if the required label `run-slow` is added
-      if: ${{ contains(github.event.pull_request.labels.*.name, 'run-slow') }}
       outputs:
         models: ${{ steps.models_to_run.outputs.models }}
       steps:
-        - uses: actions/checkout@v4
-          with:
-            fetch-depth: "0"
-            ref: ${{ github.event.pull_request.head.sha }}
-
-        - name: Get commit message
-          run: |
-            echo "commit_message=$(git show -s --format=%s)" >> $GITHUB_ENV
-
-        - name: Get models to run slow tests
-          run: |
-            echo "${{ env.commit_message }}"
-            python -m pip install GitPython
-            python utils/pr_slow_ci_models.py --commit_message "${{ env.commit_message }}" | tee output.txt
-            echo "models=$(tail -n 1 output.txt)" >> $GITHUB_ENV
-
         - name: Models to run slow tests
           id: models_to_run
           run: |
-            echo "${{ env.models }}"
-            echo "models=${{ env.models }}" >> $GITHUB_OUTPUT
+            echo "llava_next_video"
+            echo "models=llava_next_video" >> $GITHUB_OUTPUT
 
   run_models_gpu:
       name: Run all tests for the model
@@ -89,7 +70,7 @@ jobs:
 
       - name: Update clone
         working-directory: /transformers
-        run: git fetch && git fetch origin pull/${{ github.event.pull_request.number }}/head:pull/${{ github.event.pull_request.number }}/merge && git checkout pull/${{ github.event.pull_request.number }}/merge
+        run: git fetch && git fetch origin pull/31252/head:pull/31252/merge && git checkout pull/31252/merge
 
       - name: Cleanup
         working-directory: /transformers
