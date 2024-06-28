@@ -1849,6 +1849,9 @@ The commit description supports markdown synthax see:
             {"AutoConfig": "custom_configuration.CustomConfig", "AutoModel": "custom_modeling.CustomModel"},
         )
 
+        import time
+        time.sleep(60)
+
         new_model = AutoModel.from_pretrained(f"{USER}/test-dynamic-model", trust_remote_code=True)
         # Can't make an isinstance check because the new_model is from the CustomModel class of a dynamic module
         self.assertEqual(new_model.__class__.__name__, "CustomModel")
