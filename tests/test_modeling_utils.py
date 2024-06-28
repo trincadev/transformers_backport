@@ -1842,7 +1842,7 @@ The commit description supports markdown synthax see:
         config = CustomConfig(hidden_size=32)
         model = CustomModel(config)
 
-        model.push_to_hub("test-dynamic-model", token=self._token)
+        model.push_to_hub(f"{USER}/test-dynamic-model", token=self._token)
         # checks
         self.assertDictEqual(
             config.auto_map,
