@@ -1762,10 +1762,10 @@ class ModelPushToHubTester(unittest.TestCase):
         except HTTPError:
             pass
 
-        try:
-            delete_repo(token=cls._token, repo_id="test-dynamic-model")
-        except HTTPError:
-            pass
+        # try:
+        #     delete_repo(token=cls._token, repo_id="test-dynamic-model")
+        # except HTTPError:
+        #     pass
 
         try:
             delete_repo(token=cls._token, repo_id="test-dynamic-model-with-tags")
