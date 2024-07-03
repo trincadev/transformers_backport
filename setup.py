@@ -426,16 +426,16 @@ install_requires = [
 ]
 
 setup(
-    name="transformers",
-    version="4.31.0.fix",  # expected format is one of x.y.z.dev0, or x.y.z.rc1 or x.y.z (no to dashes, yes to dots)
-    author="The Hugging Face team (past and future) with the help of all our contributors (https://github.com/huggingface/transformers/graphs/contributors)",
+    name="transformers_backport",
+    version="4.31.1",  # expected format is one of x.y.z.dev0, or x.y.z.rc1 or x.y.z (no to dashes, yes to dots)
+    author="Alessandro Trinca Tornidor, backporting fixes from https://gitlab.com/huggingface/transformers",
     author_email="alessandro@trinca.tornidor.com",
-    description="State-of-the-art Machine Learning for JAX, PyTorch and TensorFlow - version 4.31.0.fix",
+    description="transformers backport - version 4.31.x",
     long_description=open("README.md", "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     keywords="NLP vision speech deep learning transformer pytorch tensorflow jax BERT GPT-2 Wav2Vec2 ViT",
     license="Apache 2.0 License",
-    url="https://github.com/trincadev/transformers",
+    url="https://gitlab.com/aletrn/transformers_backport",
     package_dir={"": "src"},
     packages=find_packages("src"),
     include_package_data=True,
